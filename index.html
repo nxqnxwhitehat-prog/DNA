@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام الأعضاء مع الدردشة</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #e0f7fa;
+      direction: rtl;
+      text-align: right;
+    }
+
+    /* شريط الأزرار */
+    .navbar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 100%;
+      background-color: #007bff;
+      display: flex;
+      justify-content: flex-start;
+      flex-direction: row-reverse;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+    .navbar button {
+      background-color: white;
+      color: #007bff;
+      border: none;
+      padding: 10px 20px;
+      margin-left: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+
+    .navbar button.active {
+      background-color: #003f7f;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    }
+
+    .navbar button:hover {
+      background-color: #0056b3;
+      color: white;
+    }
+
+    .fixed-image {
+      position: fixed;
+      top: 70px;
+      left: 10px;
+      width: 120px;
+      z-index: 999;
+      border-radius: 10px;
+    }
+
+    .content {
+      padding: 100px 20px;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    form, .rules-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 450px;
+      margin: auto;
+    }
+
+    input, select, button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    .user-list {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      max-width: 500px;
+      margin-right: auto;
+      margin-left: auto;
+    }
+
+    .rules-box ul {
+      padding-right: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* ✅ تصميم الدردشة */
+    .chat-box {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      height: 400px;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #f9f9f9;
+    }
+
+    .message {
+      background: #d0ebff;
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin: 5px 0;
+    }
+
+    .message strong {
+      color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- شريط التنقل -->
+  <div class="navbar">
+    <button onclick="showSection('home')">الرئيسية</button>
+    <button onclick="showSection('about')">حول</button>
+    <button onclick="showSection('dna')">DNA</button>
+    <button onclick="showSection('users')">عرض الأعضاء</button>
+    <button id="chatBtn" class="hidden" onclick="showSection('chat')">الدردشة</button>
+  </div>
+
+  <img src="DNA.png" alt="DNA" class="fixed-image">
+
+  <div class="content">
+    <div id="home" class="section active">
+      <h1>مرحبًا بك في الصفحة الرئيسية</h1>
+      <p>هذا الموقع مخصص للأعضاء والمشرفين للتصويت وتسجيل البيانات.</p>
+    </div>
+
+    <div id="about" class="section">
+      <h1>حول الموقع</h1>
+      <p>هذا الموقع خاص بشرح القوانين والقواعد وتنظيم الأعضاء.</p>
+    </div>
+
+    <div id="dna" class="section">
+      <h1>التصويت والتسجيل</h1>
+
+      <div id="rulesBox" class="rules-box">
+        <h3>📜 القواعد والشروط</h3>
+        <ul>
+          <li>يجب احترام القوانين وعدم نشر محتوى مخالف.</li>
+          <li>لا يمكن تعيين أكثر من وكيل واحد في النظام.</li>
+          <li>يُمنع التسجيل بأسماء وهمية.</li>
+          <li>كل عضو مسؤول عن تصرفاته داخل الموقع.</li>
+        </ul>
+        <button onclick="agreeRules()">أوافق على الشروط وأكمل التسجيل</button>
+      </div>
+
+      <form id="voteForm" class="hidden">
+        <label>الاسم:</label>
+        <input type="text" id="name" required>
+
+        <label>العمر:</label>
+        <input type="number" id="age" required>
+
+        <label>ماذا تريد أن تكون؟</label>
+        <select id="role" required>
+          <option value="">اختر...</option>
+          <option value="وكيل">وكيل</option>
+          <option value="عضو">عضو</option>
+        </select>
+
+        <button type="submit">تسجيل التصويت</button>
+      </form>
+    </div>
+
+    <div id="users" class="section">
+      <h1>قائمة الأعضاء</h1>
+      <div id="userList" class="user-list"></div>
+    </div>
+
+    <!-- ✅ قسم الدردشة -->
+    <div id="chat" class="section">
+      <h1>💬 دردشة الأعضاء</h1>
+      <div class="chat-box">
+        <div id="messages" class="messages"></div>
+        <input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button onclick="sendMessage()">إرسال</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let users = JSON.parse(localStorage.getItem('users')) || [];
+    let messages = JSON.parse(localStorage.getItem('messages')) || [];
+    let currentUser = null;
+    let rulesAccepted = false;
+
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+
+      document.querySelectorAll('.navbar button').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (sectionId === 'users') showUsers();
+      if (sectionId === 'chat') renderMessages();
+    }
+
+    function agreeRules() {
+      rulesAccepted = true;
+      document.getElementById('rulesBox').classList.add('hidden');
+      document.getElementById('voteForm').classList.remove('hidden');
+    }
+
+    document.getElementById('voteForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const age = document.getElementById('age').value;
+      const role = document.getElementById('role').value;
+
+      if (!rulesAccepted) {
+        alert("يجب أولًا الموافقة على القواعد.");
+        return;
+      }
+
+      if (role === "وكيل") {
+        const agentExists = users.some(u => u.role === "وكيل");
+        if (agentExists) {
+          alert("❌ لا يمكن تسجيل أكثر من وكيل واحد!");
+          return;
+        }
+      }
+
+      currentUser = { name, age, role };
+      users.push(currentUser);
+      localStorage.setItem('users', JSON.stringify(users));
+
+      alert("✅ تم التسجيل بنجاح! يمكنك الآن الدخول إلى الدردشة.");
+      document.getElementById('chatBtn').classList.remove('hidden');
+      this.reset();
+    });
+
+    function showUsers() {
+      const list = document.getElementById('userList');
+      if (users.length === 0) {
+        list.innerHTML = "<p>لا يوجد أي مستخدم مسجل بعد.</p>";
+        return;
+      }
+      list.innerHTML = users.map(u =>
+        `<p><strong>الاسم:</strong> ${u.name} | <strong>العمر:</strong> ${u.age} | <strong>الدور:</strong> ${u.role}</p>`
+      ).join('');
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (text === '' || !currentUser) return;
+
+      const msg = { user: currentUser.name, text };
+      messages.push(msg);
+      localStorage.setItem('messages', JSON.stringify(messages));
+      input.value = '';
+      renderMessages();
+    }
+
+    function renderMessages() {
+      const msgBox = document.getElementById('messages');
+      msgBox.innerHTML = messages.map(m => `<div class="message"><strong>${m.user}:</strong> ${m.text}</div>`).join('');
+      msgBox.scrollTop = msgBox.scrollHeight;
+    }
+  </script>
+
+</body>
+</html>
