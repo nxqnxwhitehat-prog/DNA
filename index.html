@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>نظام الأعضاء — مع الحذف</title>
+<title>نظام الأعضاء — مع صلاحيات الوكيل فقط</title>
 <style>
 body {
   margin:0; font-family: Arial, sans-serif;
@@ -87,14 +87,14 @@ th { background:#007bff; color:#fff; }
     <div class="box">
       <h2>مرحبًا</h2>
       <p class="small">هذا النظام يخزن حسابات الأعضاء محليًا في المتصفح (localStorage) حتى لا تُحذف عند إعادة التحميل.</p>
-      <p class="small">الآن تمت إضافة خاصية حذف الأعضاء يدويًا من الجدول في صفحة الأعضاء.</p>
+      <p class="small">ميزة الحذف متاحة فقط للوكيل.</p>
     </div>
   </div>
 
   <div id="about" class="section">
     <div class="box">
       <h2>عن النظام</h2>
-      <p class="small">نظام تسجيل بسيط: كل عضو يملأ الاسم والعمر ويختار دوره (عضو أو وكيل). فقط وكيل واحد مسموح. ويمكن حذف الحسابات يدويًا.</p>
+      <p class="small">نظام تسجيل بسيط: كل عضو يملأ الاسم والعمر ويختار دوره (عضو أو وكيل). فقط وكيل واحد مسموح. ويمكنه فقط حذف الحسابات.</p>
     </div>
   </div>
 
@@ -156,7 +156,6 @@ let messages = JSON.parse(localStorage.getItem(MESSAGES_KEY)) || [];
 document.addEventListener('DOMContentLoaded', () => {
   updateChatButton();
   if (currentUser) showWelcome(currentUser);
-  updateMembersButton();
 });
 
 function showSection(id) {
@@ -206,26 +205,34 @@ function updateChatButton(){
   const btn = document.getElementById('chatBtn');
   if (currentUser) btn.classList.remove('hidden'); else btn.classList.add('hidden');
 }
-function updateMembersButton(){}
 
 function renderUsers(){
   const el = document.getElementById('userList');
   if (users.length === 0) return el.innerHTML = '<p class="center small">لا يوجد أعضاء.</p>';
-  let html = `<table><thead><tr><th>الاسم</th><th>العمر</th><th>الدور</th><th>تاريخ التسجيل</th><th>إجراء</th></tr></thead><tbody>`;
+  
+  // فقط الوكيل يرى زر الحذف
+  const isAgent = currentUser && currentUser.role === 'وكيل';
+  let html = `<table><thead><tr><th>الاسم</th><th>العمر</th><th>الدور</th><th>تاريخ التسجيل</th>${isAgent ? '<th>إجراء</th>' : ''}</tr></thead><tbody>`;
+  
   users.forEach((u,i) => {
     html += `<tr>
       <td>${escapeHtml(u.name)}</td>
       <td>${escapeHtml(u.age)}</td>
       <td>${escapeHtml(u.role)}</td>
       <td class="small">${new Date(u.createdAt).toLocaleString()}</td>
-      <td><button class="delete-btn" onclick="deleteUser(${i})">حذف</button></td>
+      ${isAgent ? `<td><button class="delete-btn" onclick="deleteUser(${i})">حذف</button></td>` : ''}
     </tr>`;
   });
+  
   html += `</tbody></table>`;
   el.innerHTML = html;
 }
 
 function deleteUser(index){
+  if (!currentUser || currentUser.role !== 'وكيل') {
+    alert('❌ فقط الوكيل يمكنه حذف الأعضاء.');
+    return;
+  }
   if (!confirm('هل أنت متأكد من حذف هذا العضو؟')) return;
   const removed = users.splice(index,1)[0];
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
