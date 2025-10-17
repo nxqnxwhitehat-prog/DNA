@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>نظام الأعضاء — بإدارة الوكيل</title>
+<title>نظام الأعضاء — إدارة الوكيل</title>
 <style>
 body {
   margin:0; font-family: Arial, sans-serif;
@@ -64,11 +64,12 @@ th { background:#007bff; color:#fff; }
 .small { font-size:13px; color:#666; }
 .center { text-align:center; }
 .hidden { display:none; }
-.delete-btn, .mute-btn {
+.delete-btn, .mute-btn, .clear-btn {
   background:#ff5252; color:white; border:none;
   padding:5px 10px; border-radius:6px; cursor:pointer;
 }
 .mute-btn { background:#ff9800; }
+.clear-btn { background:#007bff; margin-bottom:10px; }
 </style>
 </head>
 
@@ -88,14 +89,14 @@ th { background:#007bff; color:#fff; }
     <div class="box">
       <h2>مرحبًا</h2>
       <p class="small">هذا النظام يخزن حسابات الأعضاء محليًا في المتصفح (localStorage) حتى لا تُحذف عند إعادة التحميل.</p>
-      <p class="small">الآن يمكن للوكيل حذف الأعضاء أو منعهم من الكتابة في الدردشة.</p>
+      <p class="small">يمكن للوكيل حذف الأعضاء أو منعهم من الدردشة أو مسح الدردشة للجميع.</p>
     </div>
   </div>
 
   <div id="about" class="section">
     <div class="box">
       <h2>عن النظام</h2>
-      <p class="small">نظام إدارة بسيط: وكيل واحد فقط يستطيع التحكم بالأعضاء (الحذف أو المنع من الدردشة).</p>
+      <p class="small">نظام إدارة بسيط: وكيل واحد فقط يستطيع التحكم بالأعضاء (الحذف، المنع من الدردشة، مسح الرسائل).</p>
     </div>
   </div>
 
@@ -139,6 +140,9 @@ th { background:#007bff; color:#fff; }
   <div id="chat" class="section">
     <h2 class="center">دردشة الأعضاء</h2>
     <div class="chat-box">
+      <div id="agentTools" class="hidden center">
+        <button class="clear-btn" onclick="clearChat()">🧹 مسح الدردشة للجميع</button>
+      </div>
       <div id="messages" class="messages"></div>
       <input id="chatInput" type="text" placeholder="اكتب رسالتك ثم اضغط Enter" onkeydown="if(event.key==='Enter') sendMessage()">
       <button onclick="sendMessage()">إرسال</button>
@@ -167,7 +171,7 @@ function showSection(id) {
   const match = Array.from(document.querySelectorAll('.navbar button')).find(b => b.getAttribute('onclick')?.includes(`'${id}'`));
   if (match) match.classList.add('active');
   if (id === 'users') renderUsers();
-  if (id === 'chat') renderMessages();
+  if (id === 'chat') renderChat();
 }
 
 function agreeRules() {
@@ -242,6 +246,22 @@ function deleteUser(index){
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
   renderUsers();
   alert('🗑️ تم حذف العضو.');
+}
+
+function renderChat(){
+  const tools = document.getElementById('agentTools');
+  if (currentUser && currentUser.role === 'وكيل') tools.classList.remove('hidden');
+  else tools.classList.add('hidden');
+  renderMessages();
+}
+
+function clearChat(){
+  if (!currentUser || currentUser.role !== 'وكيل') return alert('❌ فقط الوكيل يمكنه مسح الدردشة.');
+  if (!confirm('هل تريد مسح جميع الرسائل؟')) return;
+  messages = [];
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+  renderMessages();
+  alert('🧹 تم مسح الدردشة بنجاح.');
 }
 
 function sendMessage(){
