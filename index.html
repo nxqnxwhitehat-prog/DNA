@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>نظام الأعضاء — مع صلاحيات الوكيل فقط</title>
+<title>نظام الأعضاء — بإدارة الوكيل</title>
 <style>
 body {
   margin:0; font-family: Arial, sans-serif;
@@ -64,10 +64,11 @@ th { background:#007bff; color:#fff; }
 .small { font-size:13px; color:#666; }
 .center { text-align:center; }
 .hidden { display:none; }
-.delete-btn {
+.delete-btn, .mute-btn {
   background:#ff5252; color:white; border:none;
   padding:5px 10px; border-radius:6px; cursor:pointer;
 }
+.mute-btn { background:#ff9800; }
 </style>
 </head>
 
@@ -87,14 +88,14 @@ th { background:#007bff; color:#fff; }
     <div class="box">
       <h2>مرحبًا</h2>
       <p class="small">هذا النظام يخزن حسابات الأعضاء محليًا في المتصفح (localStorage) حتى لا تُحذف عند إعادة التحميل.</p>
-      <p class="small">ميزة الحذف متاحة فقط للوكيل.</p>
+      <p class="small">الآن يمكن للوكيل حذف الأعضاء أو منعهم من الكتابة في الدردشة.</p>
     </div>
   </div>
 
   <div id="about" class="section">
     <div class="box">
       <h2>عن النظام</h2>
-      <p class="small">نظام تسجيل بسيط: كل عضو يملأ الاسم والعمر ويختار دوره (عضو أو وكيل). فقط وكيل واحد مسموح. ويمكنه فقط حذف الحسابات.</p>
+      <p class="small">نظام إدارة بسيط: وكيل واحد فقط يستطيع التحكم بالأعضاء (الحذف أو المنع من الدردشة).</p>
     </div>
   </div>
 
@@ -126,7 +127,7 @@ th { background:#007bff; color:#fff; }
 
     <div id="welcomeBox" class="box hidden">
       <h3 id="welcomeTitle"></h3>
-      <p class="small">لقد تم حفظ حسابك محليًا ولن يُحذف تلقائيًا. يمكنك الآن الوصول إلى الدردشة والصفحات المخصصة للأعضاء.</p>
+      <p class="small">تم حفظ حسابك ولن يُحذف تلقائيًا. يمكنك الآن الوصول إلى الدردشة وصفحة الأعضاء.</p>
     </div>
   </div>
 
@@ -182,7 +183,7 @@ document.getElementById('voteForm').addEventListener('submit', function(e){
   if (!name || !age || !role) return alert('يرجى ملء جميع الحقول.');
   if (role === 'وكيل' && users.some(u => u.role === 'وكيل')) return alert('⚠️ هناك وكيل بالفعل.');
   if (users.some(u => u.name === name)) return alert('هذا الاسم مسجل مسبقًا.');
-  const newUser = { name, age, role, createdAt: new Date().toISOString() };
+  const newUser = { name, age, role, muted:false, createdAt: new Date().toISOString() };
   users.push(newUser);
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
   currentUser = newUser;
@@ -209,38 +210,36 @@ function updateChatButton(){
 function renderUsers(){
   const el = document.getElementById('userList');
   if (users.length === 0) return el.innerHTML = '<p class="center small">لا يوجد أعضاء.</p>';
-  
-  // فقط الوكيل يرى زر الحذف
-  const isAgent = currentUser && currentUser.role === 'وكيل';
-  let html = `<table><thead><tr><th>الاسم</th><th>العمر</th><th>الدور</th><th>تاريخ التسجيل</th>${isAgent ? '<th>إجراء</th>' : ''}</tr></thead><tbody>`;
-  
+  let html = `<table><thead><tr><th>الاسم</th><th>العمر</th><th>الدور</th><th>تاريخ التسجيل</th><th>إجراءات</th></tr></thead><tbody>`;
   users.forEach((u,i) => {
     html += `<tr>
       <td>${escapeHtml(u.name)}</td>
       <td>${escapeHtml(u.age)}</td>
       <td>${escapeHtml(u.role)}</td>
       <td class="small">${new Date(u.createdAt).toLocaleString()}</td>
-      ${isAgent ? `<td><button class="delete-btn" onclick="deleteUser(${i})">حذف</button></td>` : ''}
+      <td>
+        ${currentUser && currentUser.role === 'وكيل' && u.name !== currentUser.name ? `
+          <button class="mute-btn" onclick="toggleMute(${i})">${u.muted ? 'إلغاء المنع' : 'منع من الدردشة'}</button>
+          <button class="delete-btn" onclick="deleteUser(${i})">حذف</button>` : '-'}
+      </td>
     </tr>`;
   });
-  
   html += `</tbody></table>`;
   el.innerHTML = html;
 }
 
+function toggleMute(index){
+  users[index].muted = !users[index].muted;
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  renderUsers();
+  alert(users[index].muted ? '🚫 تم منع العضو من الدردشة' : '✅ تم السماح له مجددًا');
+}
+
 function deleteUser(index){
-  if (!currentUser || currentUser.role !== 'وكيل') {
-    alert('❌ فقط الوكيل يمكنه حذف الأعضاء.');
-    return;
-  }
+  if (!currentUser || currentUser.role !== 'وكيل') return alert('❌ فقط الوكيل يمكنه حذف الأعضاء.');
   if (!confirm('هل أنت متأكد من حذف هذا العضو؟')) return;
   const removed = users.splice(index,1)[0];
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  if (currentUser && currentUser.name === removed.name) {
-    localStorage.removeItem(CURRENT_KEY);
-    currentUser = null;
-    updateChatButton();
-  }
   renderUsers();
   alert('🗑️ تم حذف العضو.');
 }
@@ -249,6 +248,7 @@ function sendMessage(){
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text || !currentUser) return;
+  if (currentUser.muted) return alert('🚫 تم منعك من إرسال الرسائل.');
   const msg = { user: currentUser.name, role: currentUser.role, text, time: new Date().toISOString() };
   messages.push(msg);
   localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
