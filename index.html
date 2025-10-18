@@ -420,10 +420,36 @@ function renderMessages(){
 }
 
 /* ===== عرض صفحة الدردشة وإظهار أدوات الوكيل فقط له ===== */
+/* ===== عرض صفحة الدردشة (مرئية للجميع) ===== */
 function renderChat(){
   const tools = document.getElementById('agentTools');
-  if (currentUser && currentUser.role === 'وكيل') tools.classList.remove('hidden'); else tools.classList.add('hidden');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.querySelector('.chat-box button');
+
+  // الوكيل فقط يرى أدوات الإدارة
+  if (currentUser && currentUser.role === 'وكيل') {
+    tools.classList.remove('hidden');
+  } else {
+    tools.classList.add('hidden');
+  }
+
+  // أي شخص يمكنه رؤية الرسائل
   renderMessages();
+
+  // السماح بالكتابة فقط للمسجلين
+  if (!currentUser) {
+    chatInput.disabled = true;
+    chatInput.placeholder = "📢 الدردشة عامة — سجّل لتستطيع الكتابة";
+    sendBtn.disabled = true;
+    sendBtn.style.opacity = "0.6";
+    sendBtn.style.cursor = "not-allowed";
+  } else {
+    chatInput.disabled = false;
+    chatInput.placeholder = "اكتب رسالتك ثم اضغط Enter";
+    sendBtn.disabled = false;
+    sendBtn.style.opacity = "1";
+    sendBtn.style.cursor = "pointer";
+  }
 }
 
 /* ===== مسح الدردشة (وكيل فقط) ===== */
@@ -491,3 +517,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
